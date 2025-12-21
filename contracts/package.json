@@ -4,7 +4,14 @@
   "description": "contracts",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "test:watch": "hardhat test --watch",
+    "deploy:local": "hardhat run scripts/deploy.ts --network hardhatMainnet",
+    "deploy:sepolia": "hardhat run scripts/deploy.ts --network sepolia",
+    "deploy:op": "hardhat run scripts/deploy.ts --network hardhatOp",
+    "interact": "hardhat run scripts/interact.ts",
+    "clean": "hardhat clean"
   },
   "keywords": [],
   "author": "",
