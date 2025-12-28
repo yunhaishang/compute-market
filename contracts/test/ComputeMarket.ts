@@ -47,7 +47,7 @@ describe("ComputeMarket", function () {
     it("非管理员不能注册服务", async function () {
       await expect(
         computeMarket.connect(buyer).registerService(2n, servicePrice)
-      ).to.be.revertedWith("ComputeMarket: caller is not admin");
+      ).to.be.revertedWithCustomError(computeMarket, "NotAdmin");
     });
 
     it("应该能够更新服务价格", async function () {
@@ -74,7 +74,7 @@ describe("ComputeMarket", function () {
         .to.emit(computeMarket, "TaskCreated")
         .withArgs(1n, serviceId, buyer.address, servicePrice, (value: bigint) => value > 0n);
       
-      const task = await computeMarket.getTask(1n);
+      const [task] = await computeMarket.getTask(1n);
       expect(task.taskId).to.equal(1n);
       expect(task.serviceId).to.equal(serviceId);
       expect(task.buyer).to.equal(buyer.address);
@@ -86,13 +86,13 @@ describe("ComputeMarket", function () {
       const insufficientAmount = ethers.parseEther("0.05");
       await expect(
         computeMarket.connect(buyer).buyCompute(serviceId, { value: insufficientAmount })
-      ).to.be.revertedWith("ComputeMarket: insufficient payment");
+      ).to.be.revertedWithCustomError(computeMarket, "InsufficientPayment");
     });
 
     it("购买不存在的服务应该失败", async function () {
       await expect(
         computeMarket.connect(buyer).buyCompute(999n, { value: servicePrice })
-      ).to.be.revertedWith("ComputeMarket: service not active");
+      ).to.be.revertedWithCustomError(computeMarket, "ServiceNotActive");
     });
 
     it("购买停用的服务应该失败", async function () {
@@ -100,14 +100,14 @@ describe("ComputeMarket", function () {
       
       await expect(
         computeMarket.connect(buyer).buyCompute(serviceId, { value: servicePrice })
-      ).to.be.revertedWith("ComputeMarket: service not active");
+      ).to.be.revertedWithCustomError(computeMarket, "ServiceNotActive");
     });
 
     it("应该能够支付超过价格的金额", async function () {
       const overPayment = ethers.parseEther("0.15");
       await computeMarket.connect(buyer).buyCompute(serviceId, { value: overPayment });
       
-      const task = await computeMarket.getTask(1n);
+      const [task] = await computeMarket.getTask(1n);
       expect(task.amount).to.equal(overPayment);
     });
   });
@@ -120,14 +120,14 @@ describe("ComputeMarket", function () {
     it("管理员应该能够启动任务", async function () {
       await computeMarket.connect(admin).startTask(1n);
       
-      const task = await computeMarket.getTask(1n);
+      const [task] = await computeMarket.getTask(1n);
       expect(task.status).to.equal(1n); // Running
     });
 
     it("非管理员不能启动任务", async function () {
       await expect(
         computeMarket.connect(buyer).startTask(1n)
-      ).to.be.revertedWith("ComputeMarket: caller is not admin");
+      ).to.be.revertedWithCustomError(computeMarket, "NotAdmin");
     });
 
     it("管理员应该能够完成任务", async function () {
@@ -139,9 +139,9 @@ describe("ComputeMarket", function () {
         .to.emit(computeMarket, "TaskCompleted")
         .withArgs(1n, serviceId, buyer.address, resultHash, (value: bigint) => value > 0n);
       
-      const task = await computeMarket.getTask(1n);
+      const [task, resultHashFromContract] = await computeMarket.getTask(1n);
       expect(task.status).to.equal(2n); // Completed
-      expect(task.resultHash).to.equal(resultHash);
+      expect(resultHashFromContract).to.equal(resultHash);
       expect(task.completedAt).to.be.greaterThan(0n);
     });
 
@@ -167,7 +167,7 @@ describe("ComputeMarket", function () {
         .to.emit(computeMarket, "TaskRefunded")
         .withArgs(1n, serviceId, buyer.address, servicePrice, (value: bigint) => value > 0n);
       
-      const task = await computeMarket.getTask(1n);
+      const [task] = await computeMarket.getTask(1n);
       expect(task.status).to.equal(3n); // Refunded
       
       const buyerBalanceAfter = await ethers.provider.getBalance(buyer.address);
@@ -181,7 +181,7 @@ describe("ComputeMarket", function () {
       
       await expect(
         computeMarket.connect(admin).completeTask(1n, resultHash)
-      ).to.be.revertedWith("ComputeMarket: task must be in Running or Created status");
+      ).to.be.revertedWithCustomError(computeMarket, "InvalidTaskStatus");
     });
 
     it("已退款的任务不能再次退款", async function () {
@@ -189,7 +189,7 @@ describe("ComputeMarket", function () {
       
       await expect(
         computeMarket.connect(admin).refundTask(1n)
-      ).to.be.revertedWith("ComputeMarket: task must be in Created or Running status");
+      ).to.be.revertedWithCustomError(computeMarket, "InvalidTaskStatus");
     });
   });
 
@@ -212,7 +212,7 @@ describe("ComputeMarket", function () {
       
       await expect(
         computeMarket.connect(admin).registerService(2n, servicePrice)
-      ).to.be.revertedWith("ComputeMarket: caller is not admin");
+      ).to.be.revertedWithCustomError(computeMarket, "NotAdmin");
     });
   });
 
@@ -222,7 +222,7 @@ describe("ComputeMarket", function () {
     });
 
     it("应该能够查询任务信息", async function () {
-      const task = await computeMarket.getTask(1n);
+      const [task] = await computeMarket.getTask(1n);
       expect(task.taskId).to.equal(1n);
       expect(task.buyer).to.equal(buyer.address);
     });
