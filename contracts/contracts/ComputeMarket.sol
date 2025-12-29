@@ -4,8 +4,22 @@ pragma solidity ^0.8.28;
 /**
  * @title ComputeMarket
  * @notice 算力交易市场合约 - 负责资金托管、任务状态管理和事件触发
+ * @dev Gas 优化版本 - 使用自定义错误、结构体打包、存储缓存等技术
  */
 contract ComputeMarket {
+    // ============ 自定义错误 ============
+    // 使用自定义错误替代 require 字符串，节省 Gas
+    
+    error NotAdmin();
+    error ServiceNotActive();
+    error TaskNotExists();
+    error InsufficientPayment();
+    error InvalidTaskStatus();
+    error InvalidAddress();
+    error InvalidPrice();
+    error ServiceAlreadyExists();
+    error TransferFailed();
+    
     // ============ 状态变量 ============
     
     /// @notice 任务状态枚举
@@ -16,29 +30,30 @@ contract ComputeMarket {
         Refunded    // 已退款
     }
     
-    /// @notice 任务信息结构体
+    /// @notice 任务信息结构体（Gas 优化：打包布局）
     struct Task {
-        uint256 taskId;           // 任务ID
-        uint256 serviceId;         // 服务ID
-        address buyer;            // 购买者地址
-        uint256 amount;            // 支付金额（wei）
-        TaskStatus status;         // 任务状态
-        string resultHash;         // 结果哈希（完成时设置）
-        uint256 createdAt;         // 创建时间戳
-        uint256 completedAt;       // 完成时间戳
+        uint128 taskId;           // 任务ID（128位足够，节省 Gas）
+        uint128 serviceId;         // 服务ID（128位足够）
+        address buyer;            // 购买者地址（160位）
+        uint96 amount;            // 支付金额（96位，最大约 79 ETH，足够）
+        TaskStatus status;         // 任务状态（8位）
+        uint32 createdAt;         // 创建时间戳（32位，到2106年）
+        uint32 completedAt;       // 完成时间戳（32位）
+        // 注意：resultHash 单独存储，因为 string 类型无法打包
     }
     
-    /// @notice 服务信息结构体
+    /// @notice 服务信息结构体（Gas 优化：打包布局）
     struct Service {
-        uint256 serviceId;         // 服务ID
-        uint256 price;             // 价格（wei）
-        bool active;               // 是否激活
+        uint128 serviceId;         // 服务ID
+        uint128 price;             // 价格（128位足够）
+        bool active;               // 是否激活（8位，但占用一个槽位）
     }
     
     address public admin;          // 管理员地址
     uint256 private _taskCounter;   // 任务计数器
     
     mapping(uint256 => Task) public tasks;           // taskId => Task
+    mapping(uint256 => string) private taskResultHashes;  // taskId => resultHash（分离存储）
     mapping(uint256 => Service) public services;    // serviceId => Service
     
     // ============ 事件 ============
@@ -80,17 +95,17 @@ contract ComputeMarket {
     // ============ 修饰符 ============
     
     modifier onlyAdmin() {
-        require(msg.sender == admin, "ComputeMarket: caller is not admin");
+        if (msg.sender != admin) revert NotAdmin();
         _;
     }
     
     modifier validService(uint256 serviceId) {
-        require(services[serviceId].active, "ComputeMarket: service not active");
+        if (!services[serviceId].active) revert ServiceNotActive();
         _;
     }
     
     modifier validTask(uint256 taskId) {
-        require(tasks[taskId].taskId != 0, "ComputeMarket: task does not exist");
+        if (tasks[taskId].taskId == 0) revert TaskNotExists();
         _;
     }
     
@@ -111,24 +126,28 @@ contract ComputeMarket {
         payable 
         validService(serviceId)
     {
+        // Gas 优化：缓存存储变量到内存
         Service memory service = services[serviceId];
         
-        // 校验支付金额
-        require(msg.value >= service.price, "ComputeMarket: insufficient payment");
+        // 校验支付金额（使用自定义错误）
+        if (msg.value < service.price) revert InsufficientPayment();
         
-        // 创建任务ID
-        _taskCounter++;
-        uint256 taskId = _taskCounter;
+        // Gas 优化：使用 unchecked 块（计数器递增是安全的）
+        uint256 taskId;
+        unchecked {
+            _taskCounter++;
+            taskId = _taskCounter;
+        }
         
-        // 存储任务信息
+        // Gas 优化：直接写入存储，避免创建临时结构体
+        // 注意：使用类型转换以匹配优化后的结构体布局
         tasks[taskId] = Task({
-            taskId: taskId,
-            serviceId: serviceId,
+            taskId: uint128(taskId),
+            serviceId: uint128(serviceId),
             buyer: msg.sender,
-            amount: msg.value,
+            amount: uint96(msg.value),  // 假设金额不超过 79 ETH
             status: TaskStatus.Created,
-            resultHash: "",
-            createdAt: block.timestamp,
+            createdAt: uint32(block.timestamp),
             completedAt: 0
         });
         
@@ -152,10 +171,7 @@ contract ComputeMarket {
         validTask(taskId)
     {
         Task storage task = tasks[taskId];
-        require(
-            task.status == TaskStatus.Created,
-            "ComputeMarket: task must be in Created status"
-        );
+        if (task.status != TaskStatus.Created) revert InvalidTaskStatus();
         
         task.status = TaskStatus.Running;
     }
@@ -171,20 +187,27 @@ contract ComputeMarket {
         validTask(taskId)
     {
         Task storage task = tasks[taskId];
-        require(
-            task.status == TaskStatus.Running || task.status == TaskStatus.Created,
-            "ComputeMarket: task must be in Running or Created status"
-        );
+        TaskStatus currentStatus = task.status;
+        
+        // Gas 优化：提前检查状态，避免不必要的存储读取
+        if (currentStatus != TaskStatus.Running && currentStatus != TaskStatus.Created) {
+            revert InvalidTaskStatus();
+        }
+        
+        // Gas 优化：缓存金额到内存，避免多次存储读取
+        uint96 amount = task.amount;
         
         // 更新状态
         task.status = TaskStatus.Completed;
-        task.resultHash = resultHash;
-        task.completedAt = block.timestamp;
+        task.completedAt = uint32(block.timestamp);
+        
+        // 存储结果哈希（分离存储以优化结构体打包）
+        taskResultHashes[taskId] = resultHash;
         
         // 释放资金给服务提供者（这里简化处理，直接转给管理员）
         // 实际场景中，应该转给服务提供者地址
-        (bool success, ) = admin.call{value: task.amount}("");
-        require(success, "ComputeMarket: transfer failed");
+        (bool success, ) = admin.call{value: amount}("");
+        if (!success) revert TransferFailed();
         
         // 发出事件
         emit TaskCompleted(
@@ -206,24 +229,31 @@ contract ComputeMarket {
         validTask(taskId)
     {
         Task storage task = tasks[taskId];
-        require(
-            task.status == TaskStatus.Created || task.status == TaskStatus.Running,
-            "ComputeMarket: task must be in Created or Running status"
-        );
+        TaskStatus currentStatus = task.status;
+        
+        // Gas 优化：提前检查状态
+        if (currentStatus != TaskStatus.Created && currentStatus != TaskStatus.Running) {
+            revert InvalidTaskStatus();
+        }
+        
+        // Gas 优化：缓存变量到内存
+        uint96 amount = task.amount;
+        address buyer = task.buyer;
+        uint128 serviceId = task.serviceId;
         
         // 更新状态
         task.status = TaskStatus.Refunded;
         
         // 退款给购买者
-        (bool success, ) = task.buyer.call{value: task.amount}("");
-        require(success, "ComputeMarket: refund failed");
+        (bool success, ) = buyer.call{value: amount}("");
+        if (!success) revert TransferFailed();
         
         // 发出事件
         emit TaskRefunded(
             taskId,
-            task.serviceId,
-            task.buyer,
-            task.amount,
+            serviceId,
+            buyer,
+            amount,
             block.timestamp
         );
     }
@@ -239,12 +269,12 @@ contract ComputeMarket {
         external 
         onlyAdmin 
     {
-        require(price > 0, "ComputeMarket: price must be greater than 0");
-        require(!services[serviceId].active, "ComputeMarket: service already exists");
+        if (price == 0) revert InvalidPrice();
+        if (services[serviceId].active) revert ServiceAlreadyExists();
         
         services[serviceId] = Service({
-            serviceId: serviceId,
-            price: price,
+            serviceId: uint128(serviceId),
+            price: uint128(price),
             active: true
         });
         
@@ -261,8 +291,8 @@ contract ComputeMarket {
         onlyAdmin 
         validService(serviceId)
     {
-        require(newPrice > 0, "ComputeMarket: price must be greater than 0");
-        services[serviceId].price = newPrice;
+        if (newPrice == 0) revert InvalidPrice();
+        services[serviceId].price = uint128(newPrice);
     }
     
     /**
@@ -282,7 +312,7 @@ contract ComputeMarket {
      * @param newAdmin 新管理员地址
      */
     function transferAdmin(address newAdmin) external onlyAdmin {
-        require(newAdmin != address(0), "ComputeMarket: invalid address");
+        if (newAdmin == address(0)) revert InvalidAddress();
         admin = newAdmin;
     }
     
@@ -291,10 +321,21 @@ contract ComputeMarket {
     /**
      * @notice 获取任务信息
      * @param taskId 任务ID
-     * @return Task 任务信息
+     * @return task 任务信息（不包含 resultHash）
+     * @return resultHash 结果哈希
      */
-    function getTask(uint256 taskId) external view returns (Task memory) {
-        return tasks[taskId];
+    function getTask(uint256 taskId) external view returns (Task memory task, string memory resultHash) {
+        task = tasks[taskId];
+        resultHash = taskResultHashes[taskId];
+    }
+    
+    /**
+     * @notice 获取任务结果哈希
+     * @param taskId 任务ID
+     * @return string 结果哈希
+     */
+    function getTaskResultHash(uint256 taskId) external view returns (string memory) {
+        return taskResultHashes[taskId];
     }
     
     /**

@@ -12,10 +12,18 @@
     "preview": "vite preview",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
-    "lint": "eslint . --fix --cache"
+    "lint": "eslint . --fix --cache",
+    "sync:abi": "node scripts/sync-abi.js"
   },
   "dependencies": {
-    "vue": "^3.5.25"
+    "@element-plus/icons-vue": "^2.3.2",
+    "axios": "^1.7.0",
+    "dayjs": "^1.11.19",
+    "element-plus": "^2.13.0",
+    "ethers": "^6.16.0",
+    "pinia": "^2.2.0",
+    "vue": "^3.5.25",
+    "vue-router": "^4.5.0"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.3",
@@ -27,6 +35,7 @@
     "eslint-plugin-vue": "~10.5.1",
     "jiti": "^2.6.1",
     "npm-run-all2": "^8.0.4",
+    "sass-embedded": "^1.97.1",
     "typescript": "~5.9.0",
     "vite": "^7.2.4",
     "vite-plugin-vue-devtools": "^8.0.5",
