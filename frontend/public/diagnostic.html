@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>环境诊断 - iExec 计算市场</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      padding: 40px;
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 32px;
+    }
+    
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 16px;
+    }
+    
+    .check-item {
+      padding: 20px;
+      margin: 15px 0;
+      border-radius: 12px;
+      background: #f8f9fa;
+      border-left: 4px solid #ddd;
+      transition: all 0.3s;
+    }
+    
+    .check-item.success {
+      border-left-color: #10b981;
+      background: #ecfdf5;
+    }
+    
+    .check-item.error {
+      border-left-color: #ef4444;
+      background: #fef2f2;
+    }
+    
+    .check-item.warning {
+      border-left-color: #f59e0b;
+      background: #fffbeb;
+    }
+    
+    .check-title {
+      font-weight: 600;
+      font-size: 18px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .status-icon {
+      font-size: 24px;
+    }
+    
+    .check-detail {
+      color: #666;
+      font-size: 14px;
+      margin-left: 34px;
+    }
+    
+    .action-button {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 8px 16px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 14px;
+      transition: background 0.3s;
+    }
+    
+    .action-button:hover {
+      background: #5568d3;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+    }
+    
+    .summary {
+      margin-top: 30px;
+      padding: 20px;
+      background: #f0f9ff;
+      border-radius: 12px;
+      border-left: 4px solid #3b82f6;
+    }
+    
+    .summary h3 {
+      color: #1e40af;
+      margin-bottom: 10px;
+    }
+    
+    .summary ul {
+      list-style: none;
+      padding-left: 20px;
+    }
+    
+    .summary li {
+      margin: 8px 0;
+      color: #374151;
+    }
+    
+    .summary li::before {
+      content: "→ ";
+      color: #3b82f6;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 环境诊断工具</h1>
+    <p class="subtitle">检查您的开发环境配置是否正确</p>
+    
+    <div id="checks">
+      <div class="loading">⏳ 正在检查环境...</div>
+    </div>
+    
+    <div id="summary" style="display: none;"></div>
+  </div>
+
+  <script>
+    const checks = [];
+    
+    async function runDiagnostics() {
+      const container = document.getElementById('checks');
+      container.innerHTML = '';
+      
+      // 1. 检查 MetaMask
+      await checkMetaMask();
+      
+      // 2. 检查后端 API
+      await checkBackendAPI();
+      
+      // 3. 检查区块链节点
+      await checkBlockchainNode();
+      
+      // 4. 检查合约地址
+      await checkContractAddress();
+      
+      // 显示总结
+      showSummary();
+    }
+    
+    async function checkMetaMask() {
+      const item = createCheckItem('MetaMask 钱包');
+      
+      if (typeof window.ethereum !== 'undefined') {
+        if (window.ethereum.isMetaMask) {
+          updateCheckItem(item, 'success', '✅ MetaMask 已安装且正常');
+          checks.push({ name: 'MetaMask', status: 'success' });
+        } else {
+          updateCheckItem(item, 'warning', '⚠️ 检测到钱包但不是 MetaMask');
+          checks.push({ name: 'MetaMask', status: 'warning' });
+        }
+      } else {
+        updateCheckItem(item, 'error', 
+          '❌ 未检测到 MetaMask',
+          `<a href="https://metamask.io/download/" target="_blank" class="action-button">下载 MetaMask</a>`
+        );
+        checks.push({ name: 'MetaMask', status: 'error' });
+      }
+    }
+    
+    async function checkBackendAPI() {
+      const item = createCheckItem('后端 API 服务');
+      const apiUrl = 'http://localhost:8081/api/monitor/stats';
+      
+      try {
+        const response = await fetch(apiUrl);
+        if (response.ok) {
+          const data = await response.json();
+          updateCheckItem(item, 'success', 
+            `✅ 后端服务正常运行`,
+            `地址: ${apiUrl}<br>运行任务: ${data.runningTasksCount} | 完成: ${data.completedTasksCount}`
+          );
+          checks.push({ name: 'Backend', status: 'success' });
+        } else {
+          throw new Error(`HTTP ${response.status}`);
+        }
+      } catch (error) {
+        updateCheckItem(item, 'error',
+          `❌ 后端服务无法连接`,
+          `错误: ${error.message}<br>请确保后端服务已启动在 http://localhost:8081<br><code>cd backend && mvnw.cmd spring-boot:run</code>`
+        );
+        checks.push({ name: 'Backend', status: 'error' });
+      }
+    }
+    
+    async function checkBlockchainNode() {
+      const item = createCheckItem('区块链节点');
+      const rpcUrl = 'http://localhost:8545';
+      
+      try {
+        const response = await fetch(rpcUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'eth_blockNumber',
+            params: [],
+            id: 1
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const blockNumber = parseInt(data.result, 16);
+          updateCheckItem(item, 'success',
+            `✅ Hardhat 节点正常运行`,
+            `RPC: ${rpcUrl}<br>当前区块: ${blockNumber}`
+          );
+          checks.push({ name: 'Blockchain', status: 'success' });
+        } else {
+          throw new Error(`HTTP ${response.status}`);
+        }
+      } catch (error) {
+        updateCheckItem(item, 'error',
+          `❌ 区块链节点无法连接`,
+          `错误: ${error.message}<br>请确保 Hardhat 节点已启动<br><code>cd contracts && npx hardhat node</code>`
+        );
+        checks.push({ name: 'Blockchain', status: 'error' });
+      }
+    }
+    
+    async function checkContractAddress() {
+      const item = createCheckItem('智能合约配置');
+      const contractAddress = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
+      
+      if (contractAddress && contractAddress !== '0xYOUR_CONTRACT_ADDRESS_HERE') {
+        updateCheckItem(item, 'success',
+          `✅ 合约地址已配置`,
+          `地址: ${contractAddress}`
+        );
+        checks.push({ name: 'Contract', status: 'success' });
+      } else {
+        updateCheckItem(item, 'error',
+          `❌ 合约地址未配置`,
+          `请在 frontend/.env 中设置 VITE_CONTRACT_ADDRESS`
+        );
+        checks.push({ name: 'Contract', status: 'error' });
+      }
+    }
+    
+    function createCheckItem(title) {
+      const container = document.getElementById('checks');
+      const item = document.createElement('div');
+      item.className = 'check-item';
+      item.innerHTML = `
+        <div class="check-title">
+          <span class="status-icon">⏳</span>
+          ${title}
+        </div>
+        <div class="check-detail">检查中...</div>
+      `;
+      container.appendChild(item);
+      return item;
+    }
+    
+    function updateCheckItem(item, status, title, detail = '') {
+      item.className = `check-item ${status}`;
+      const icons = {
+        success: '✅',
+        error: '❌',
+        warning: '⚠️'
+      };
+      item.querySelector('.check-title .status-icon').textContent = icons[status] || '⏳';
+      item.querySelector('.check-detail').innerHTML = detail || title;
+    }
+    
+    function showSummary() {
+      const summary = document.getElementById('summary');
+      const successCount = checks.filter(c => c.status === 'success').length;
+      const errorCount = checks.filter(c => c.status === 'error').length;
+      const warningCount = checks.filter(c => c.status === 'warning').length;
+      
+      let message = '';
+      let recommendations = [];
+      
+      if (errorCount === 0 && warningCount === 0) {
+        message = '🎉 恭喜！所有检查都通过了，您的环境配置正确！';
+        recommendations = [
+          '打开浏览器访问 http://localhost:5173',
+          '点击"连接钱包"按钮',
+          '在 MetaMask 中添加本地网络（Chain ID: 31337, RPC: http://localhost:8545）',
+          '导入测试账户私钥进行测试'
+        ];
+      } else {
+        message = `⚠️ 发现 ${errorCount} 个错误和 ${warningCount} 个警告，请按照上述提示解决。`;
+        recommendations = [
+          '确保所有服务都已启动',
+          '检查端口是否被占用',
+          '验证配置文件是否正确',
+          '查看控制台错误信息'
+        ];
+      }
+      
+      summary.innerHTML = `
+        <div class="summary">
+          <h3>诊断结果</h3>
+          <p style="margin: 10px 0; color: #374151;">${message}</p>
+          <p style="margin-top: 15px; font-weight: 600; color: #1e40af;">下一步建议：</p>
+          <ul>
+            ${recommendations.map(r => `<li>${r}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+      summary.style.display = 'block';
+    }
+    
+    // 运行诊断
+    runDiagnostics();
+  </script>
+</body>
+</html>

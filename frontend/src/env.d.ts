@@ -1,22 +1,6 @@
 /// <reference types="vite/client" />
 
-/**
- * 扩展 Window 接口，添加 ethereum 属性（MetaMask）
- */
-interface Window {
-  ethereum?: {
-    isMetaMask?: boolean
-    request: (args: { method: string; params?: any[] }) => Promise<any>
-    on: (event: string, handler: (...args: any[]) => void) => void
-    removeListener: (event: string, handler: (...args: any[]) => void) => void
-    selectedAddress?: string | null
-    chainId?: string
-  }
-}
-
-/**
- * Vite 环境变量类型声明
- */
+// 环境变量类型声明
 interface ImportMetaEnv {
   readonly VITE_CONTRACT_ADDRESS: string
   readonly VITE_CHAIN_ID: string
@@ -33,4 +17,15 @@ interface ImportMetaEnv {
 
 interface ImportMeta {
   readonly env: ImportMetaEnv
+}
+
+// MetaMask / Ethereum Provider 类型声明
+interface Window {
+  ethereum?: {
+    isMetaMask?: boolean
+    request: (args: { method: string; params?: any[] }) => Promise<any>
+    on: (event: string, callback: (...args: any[]) => void) => void
+    removeListener: (event: string, callback: (...args: any[]) => void) => void
+    removeAllListeners: (event: string) => void
+  }
 }
