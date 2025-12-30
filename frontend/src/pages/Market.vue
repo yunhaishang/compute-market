@@ -69,24 +69,49 @@
 
         <!-- 文件上传 -->
         <div class="file-upload-section">
-          <el-divider content-position="left">训练数据上传</el-divider>
+          <el-divider content-position="left">数据上传</el-divider>
           <el-upload
-            ref="uploadRef"
+            ref="dataUploadRef"
             :auto-upload="false"
-            :on-change="handleFileChange"
-            :on-remove="handleFileRemove"
-            :file-list="fileList"
+            :on-change="handleDataFileChange"
+            :on-remove="handleDataFileRemove"
+            :file-list="dataFileList"
             drag
             multiple
             :limit="5"
           >
             <el-icon class="el-icon--upload"><upload-filled /></el-icon>
             <div class="el-upload__text">
-              拖拽文件到此处或 <em>点击上传</em>
+              拖拽数据文件到此处或 <em>点击上传</em>
             </div>
             <template #tip>
               <div class="el-upload__tip">
                 支持上传训练数据文件，最多5个文件
+              </div>
+            </template>
+          </el-upload>
+        </div>
+
+        <!-- 模型上传 -->
+        <div class="file-upload-section">
+          <el-divider content-position="left">模型上传</el-divider>
+          <el-upload
+            ref="modelUploadRef"
+            :auto-upload="false"
+            :on-change="handleModelFileChange"
+            :on-remove="handleModelFileRemove"
+            :file-list="modelFileList"
+            drag
+            multiple
+            :limit="3"
+          >
+            <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+            <div class="el-upload__text">
+              拖拽模型文件到此处或 <em>点击上传</em>
+            </div>
+            <template #tip>
+              <div class="el-upload__tip">
+                支持上传模型文件，最多3个文件
               </div>
             </template>
           </el-upload>
@@ -159,8 +184,10 @@ const dialogVisible = ref(false)
 const purchasing = ref(false)
 
 // 文件上传
-const uploadRef = ref()
-const fileList = ref<UploadUserFile[]>([])
+const dataUploadRef = ref()
+const dataFileList = ref<UploadUserFile[]>([])
+const modelUploadRef = ref()
+const modelFileList = ref<UploadUserFile[]>([])
 
 // 交易状态
 const txStatus = ref(false)
@@ -190,13 +217,22 @@ const canPurchase = computed(() => {
 })
 
 // 文件上传处理
-function handleFileChange(file: UploadFile) {
-  console.log('文件已选择:', file.name)
+function handleDataFileChange(file: UploadFile) {
+  console.log('数据文件已选择:', file.name)
   // 暂存文件但不实际使用
 }
 
-function handleFileRemove(file: UploadFile) {
-  console.log('文件已移除:', file.name)
+function handleDataFileRemove(file: UploadFile) {
+  console.log('数据文件已移除:', file.name)
+}
+
+function handleModelFileChange(file: UploadFile) {
+  console.log('模型文件已选择:', file.name)
+  // 暂存文件但不实际使用
+}
+
+function handleModelFileRemove(file: UploadFile) {
+  console.log('模型文件已移除:', file.name)
 }
 
 // 获取区块链浏览器 URL
@@ -316,7 +352,8 @@ function resetTxStatus() {
   txHash.value = ''
   txMessage.value = ''
   errorMessage.value = ''
-  fileList.value = []  // 清空文件列表
+  dataFileList.value = []  // 清空数据文件列表
+  modelFileList.value = []  // 清空模型文件列表
 }
 
 // 跳转到任务列表
