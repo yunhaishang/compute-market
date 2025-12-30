@@ -193,7 +193,7 @@
     
     async function checkBackendAPI() {
       const item = createCheckItem('后端 API 服务');
-      const apiUrl = 'http://localhost:8081/api/monitor/stats';
+      const apiUrl = 'http://localhost:8080/api/monitor/stats';
       
       try {
         const response = await fetch(apiUrl);

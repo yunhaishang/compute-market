@@ -52,7 +52,7 @@ apiClient.interceptors.response.use(
     if (error.code === 'ECONNABORTED') {
       errorMessage = '请求超时，请检查网络连接'
     } else if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
-      errorMessage = '网络错误，请检查后端服务是否启动（http://localhost:8081）'
+      errorMessage = '网络错误，请检查后端服务是否启动（http://localhost:8080）'
     } else if (error.response) {
       // 服务器返回错误状态码
       switch (error.response.status) {
