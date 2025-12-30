@@ -67,6 +67,56 @@
           </div>
         </div>
 
+        <!-- 文件上传 -->
+        <div class="file-upload-section">
+          <el-divider content-position="left">数据上传</el-divider>
+          <el-upload
+            ref="dataUploadRef"
+            :auto-upload="false"
+            :on-change="handleDataFileChange"
+            :on-remove="handleDataFileRemove"
+            :file-list="dataFileList"
+            drag
+            multiple
+            :limit="5"
+          >
+            <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+            <div class="el-upload__text">
+              拖拽数据文件到此处或 <em>点击上传</em>
+            </div>
+            <template #tip>
+              <div class="el-upload__tip">
+                支持上传训练数据文件，最多5个文件
+              </div>
+            </template>
+          </el-upload>
+        </div>
+
+        <!-- 模型上传 -->
+        <div class="file-upload-section">
+          <el-divider content-position="left">模型上传</el-divider>
+          <el-upload
+            ref="modelUploadRef"
+            :auto-upload="false"
+            :on-change="handleModelFileChange"
+            :on-remove="handleModelFileRemove"
+            :file-list="modelFileList"
+            drag
+            multiple
+            :limit="3"
+          >
+            <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+            <div class="el-upload__text">
+              拖拽模型文件到此处或 <em>点击上传</em>
+            </div>
+            <template #tip>
+              <div class="el-upload__tip">
+                支持上传模型文件，最多3个文件
+              </div>
+            </template>
+          </el-upload>
+        </div>
+
         <!-- 交易状态 -->
         <div v-if="txStatus" class="tx-status">
           <el-steps :active="txStep" finish-status="success" align-center>
@@ -119,9 +169,10 @@ import { useWalletStore } from '@/store/wallet'
 import { contractService, PRESET_SERVICES } from '@/services/contract'
 import { getNetworkConfig, CHAIN_ID } from '@/config/env'
 import { ElMessage, ElNotification } from 'element-plus'
-import { ShoppingCart, Loading, CircleCheck } from '@element-plus/icons-vue'
+import { ShoppingCart, Loading, CircleCheck, UploadFilled } from '@element-plus/icons-vue'
 import ComputeCard from '@/components/ComputeCard.vue'
 import type { Service } from '@/types'
+import type { UploadUserFile, UploadFile } from 'element-plus'
 
 const router = useRouter()
 const walletStore = useWalletStore()
@@ -131,6 +182,12 @@ const purchasingServiceId = ref<number | null>(null)
 const selectedService = ref<Service | null>(null)
 const dialogVisible = ref(false)
 const purchasing = ref(false)
+
+// 文件上传
+const dataUploadRef = ref()
+const dataFileList = ref<UploadUserFile[]>([])
+const modelUploadRef = ref()
+const modelFileList = ref<UploadUserFile[]>([])
 
 // 交易状态
 const txStatus = ref(false)
@@ -158,6 +215,25 @@ const canPurchase = computed(() => {
   const price = parseFloat(selectedService.value.price)
   return balance >= price
 })
+
+// 文件上传处理
+function handleDataFileChange(file: UploadFile) {
+  console.log('数据文件已选择:', file.name)
+  // 暂存文件但不实际使用
+}
+
+function handleDataFileRemove(file: UploadFile) {
+  console.log('数据文件已移除:', file.name)
+}
+
+function handleModelFileChange(file: UploadFile) {
+  console.log('模型文件已选择:', file.name)
+  // 暂存文件但不实际使用
+}
+
+function handleModelFileRemove(file: UploadFile) {
+  console.log('模型文件已移除:', file.name)
+}
 
 // 获取区块链浏览器 URL
 function getExplorerUrl(hash: string): string {
@@ -276,6 +352,8 @@ function resetTxStatus() {
   txHash.value = ''
   txMessage.value = ''
   errorMessage.value = ''
+  dataFileList.value = []  // 清空数据文件列表
+  modelFileList.value = []  // 清空模型文件列表
 }
 
 // 跳转到任务列表

@@ -126,7 +126,7 @@
 
         <div class="result-content">
           <el-descriptions :column="1" border>
-            <el-descriptions-item label="IPFS 哈希">
+            <el-descriptions-item label="结果哈希">
               <div class="hash-content">
                 <span class="hash-text">{{ task.resultHash }}</span>
                 <el-button
@@ -138,23 +138,6 @@
               </div>
             </el-descriptions-item>
           </el-descriptions>
-
-          <div class="result-actions">
-            <el-button
-              type="primary"
-              :icon="View"
-              @click="viewOnIPFS(task.resultHash)"
-            >
-              在 IPFS 查看
-            </el-button>
-            <el-button
-              type="success"
-              :icon="Download"
-              @click="downloadResult(task.resultHash)"
-            >
-              下载结果
-            </el-button>
-          </div>
         </div>
       </el-card>
 

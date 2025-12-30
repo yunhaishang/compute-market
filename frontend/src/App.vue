@@ -6,7 +6,7 @@
         <!-- Logo 和标题 -->
         <div class="logo-section">
           <div class="logo">🔷</div>
-          <h1 class="title">iExec 算力交易市场</h1>
+          <h1 class="title">AI训练算力市场</h1>
         </div>
 
         <!-- 导航菜单 -->
@@ -49,7 +49,7 @@
 
     <!-- 页脚 -->
     <el-footer class="app-footer">
-      <p>© 2025 iExec 算力交易市场 - 区块链导论课程项目</p>
+      <p>© 2025 AI训练算力市场 - 区块链导论课程项目</p>
       <p class="footer-links">
         <a href="https://github.com" target="_blank">GitHub</a>
         <span class="divider">|</span>

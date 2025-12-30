@@ -4,7 +4,7 @@
     <div class="hero-section">
       <div class="hero-content">
         <h1 class="hero-title">
-          <span class="gradient-text">去中心化算力交易市场</span>
+          <span class="gradient-text">AI训练算力市场</span>
         </h1>
         <p class="hero-subtitle">
           基于 iExec 网络的分布式计算平台
