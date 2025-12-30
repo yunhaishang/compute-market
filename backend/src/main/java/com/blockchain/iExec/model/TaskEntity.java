@@ -12,11 +12,15 @@ public class TaskEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String taskId;
-    private String iexecTaskId;
-    private String userAddress;
-    private String status;
-    private String resultHash;
+    
+    private String taskId;          // 本地链任务 ID
+    private String iexecTaskId;     // iExec 任务 ID（如果使用 iExec）
+    private String arbitrumTaskId;  // Arbitrum Sepolia 任务 ID
+    private String serviceId;       // 服务 ID
+    private String userAddress;     // 用户地址
+    private String status;          // 任务状态：Created, Processing, Completed, Failed
+    private String resultHash;      // 计算结果哈希
+    
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime completedAt;
@@ -45,6 +49,22 @@ public class TaskEntity {
 
     public void setIexecTaskId(String iexecTaskId) {
         this.iexecTaskId = iexecTaskId;
+    }
+
+    public String getArbitrumTaskId() {
+        return arbitrumTaskId;
+    }
+
+    public void setArbitrumTaskId(String arbitrumTaskId) {
+        this.arbitrumTaskId = arbitrumTaskId;
+    }
+
+    public String getServiceId() {
+        return serviceId;
+    }
+
+    public void setServiceId(String serviceId) {
+        this.serviceId = serviceId;
     }
 
     public String getUserAddress() {

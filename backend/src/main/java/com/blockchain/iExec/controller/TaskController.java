@@ -23,10 +23,23 @@ public class TaskController {
     }
     
     @GetMapping("/{id}")
-    public ResponseEntity<TaskEntity> getTaskById(@PathVariable Long id) {
-        Optional<TaskEntity> task = taskService.getTaskById(id);
-        return task.map(ResponseEntity::ok)
-                   .orElseGet(() -> ResponseEntity.notFound().build());
+    public ResponseEntity<TaskEntity> getTaskById(@PathVariable String id) {
+        // 首先尝试作为区块链 taskId 查询（最常见的情况）
+        TaskEntity task = taskService.getTaskByTaskId(id);
+        if (task != null) {
+            return ResponseEntity.ok(task);
+        }
+        
+        // 如果没找到，尝试作为数据库 ID 查询
+        try {
+            Long dbId = Long.parseLong(id);
+            Optional<TaskEntity> taskById = taskService.getTaskById(dbId);
+            return taskById.map(ResponseEntity::ok)
+                           .orElseGet(() -> ResponseEntity.notFound().build());
+        } catch (NumberFormatException e) {
+            // 如果不是有效的数字，返回 404
+            return ResponseEntity.notFound().build();
+        }
     }
     
     @GetMapping("/task-id/{taskId}")

@@ -74,6 +74,28 @@
             <span v-else class="placeholder">-</span>
           </el-descriptions-item>
 
+          <el-descriptions-item label="Arbitrum 交易哈希" :span="2">
+            <div v-if="task.arbitrumTaskId" class="hash-content">
+              <span class="hash-text monospace">{{ task.arbitrumTaskId }}</span>
+              <el-button
+                :icon="CopyDocument"
+                size="small"
+                text
+                @click="copyText(task.arbitrumTaskId)"
+              />
+              <el-button
+                :icon="Link"
+                size="small"
+                text
+                type="primary"
+                @click="viewOnArbiscan(task.arbitrumTaskId)"
+              >
+                在 Arbiscan 查看
+              </el-button>
+            </div>
+            <span v-else class="placeholder">未提交到 Arbitrum</span>
+          </el-descriptions-item>
+
           <el-descriptions-item label="创建时间">
             {{ formatDateTime(task.createdAt) }}
           </el-descriptions-item>
@@ -216,7 +238,8 @@ import {
   Loading,
   CircleCheck,
   CircleClose,
-  RefreshLeft
+  RefreshLeft,
+  Link
 } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
 import type { TaskEntity } from '@/types'
@@ -278,6 +301,12 @@ async function copyText(text: string) {
 // 在 IPFS 上查看
 function viewOnIPFS(hash: string) {
   const url = `${IPFS_GATEWAY}${hash}`
+  window.open(url, '_blank')
+}
+
+// 在 Arbiscan 上查看交易
+function viewOnArbiscan(txHash: string) {
+  const url = `https://sepolia.arbiscan.io/tx/${txHash}`
   window.open(url, '_blank')
 }
 
