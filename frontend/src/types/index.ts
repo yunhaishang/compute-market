@@ -11,6 +11,7 @@ export interface TaskEntity {
   id: number
   taskId: string
   iexecTaskId: string
+  arbitrumTaskId?: string  // Arbitrum 交易哈希
   userAddress: string
   serviceId?: number  // 服务ID（可选，从区块链查询时使用）
   amount?: string     // 支付金额（可选，从区块链查询时使用）

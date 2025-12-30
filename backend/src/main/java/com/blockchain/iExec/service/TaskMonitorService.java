@@ -28,6 +28,9 @@ public class TaskMonitorService {
     private IexecCliService iexecCliService;
     
     @Autowired
+    private MockIexecService mockIexecService;
+    
+    @Autowired
     private TaskService taskService;
     
     @Autowired
@@ -41,6 +44,9 @@ public class TaskMonitorService {
     
     @Value("${task.monitor.timeout:3600000}")
     private long taskTimeout;
+    
+    @Value("${iexec.mock.enabled:true}")
+    private boolean mockEnabled;
     
     /**
      * 定时监控运行中的任务
@@ -89,8 +95,15 @@ public class TaskMonitorService {
             return;
         }
         
-        // 查询 iExec 任务状态
-        IexecTaskStatus status = iexecCliService.getTaskStatus(iexecTaskId);
+        // 查询 iExec 任务状态（根据模式选择真实或模拟）
+        IexecTaskStatus status;
+        if (mockEnabled) {
+            logger.debug("🎭 Using MOCK mode for task status");
+            status = mockIexecService.getMockTaskStatus(iexecTaskId);
+        } else {
+            logger.debug("⚙️ Using REAL iExec CLI for task status");
+            status = iexecCliService.getTaskStatus(iexecTaskId);
+        }
         
         if (status == null) {
             logger.warn("Failed to get status for task: {}", iexecTaskId);
