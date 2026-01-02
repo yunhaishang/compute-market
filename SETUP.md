@@ -11,15 +11,6 @@ npx hardhat node
 
 保持此终端运行，本地区块链节点将在 `http://localhost:8545` 上运行。
 
-在contracts/hardhat.config.ts中添加：
-```
-    localhost: {
-      type: "http",
-      chainType: "l1",
-      url: "http://127.0.0.1:8545",
-    },
-```
-
 ### 2. 部署智能合约
 
 **新开一个终端：**
